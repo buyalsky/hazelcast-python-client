@@ -125,8 +125,8 @@ if __name__ == '__main__':
         .add_portable_field("address", address_class_def) \
         .build()
 
-    # config.serialization_config.class_definitions.add(home_address_class_def)
-    # config.serialization_config.class_definitions.add(address_class_def)
+    #config.serialization_config.class_definitions.add(home_address_class_def)
+    #config.serialization_config.class_definitions.add(address_class_def)
     config.serialization_config.class_definitions.add(employee_class_def)
 
     client = hazelcast.HazelcastClient(config)
