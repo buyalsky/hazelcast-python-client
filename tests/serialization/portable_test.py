@@ -347,7 +347,7 @@ class PortableSerializationTestCase(unittest.TestCase):
         ss1 = SerializationServiceV1(serialization_config)
         ss2 = SerializationServiceV1(serialization_config)
 
-        ss2.to_data(Child("Joe"))
+        # ss2.to_data(Child("Joe"))
 
         p = Parent(Child("Joe"))
 

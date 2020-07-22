@@ -111,7 +111,7 @@ class ClassDefinition(object):
 
 
 class ClassDefinitionBuilder(object):
-    def __init__(self, factory_id, class_id, version=0):
+    def __init__(self, factory_id, class_id, version=0, serialization_config=None):
         self.factory_id = factory_id
         self.class_id = class_id
         self.version = version
@@ -120,11 +120,15 @@ class ClassDefinitionBuilder(object):
         self._done = False
         self._field_defs = list()
 
+        self._serialization_config = serialization_config
+
     def add_portable_field(self, field_name, class_def):
         if class_def.class_id is None or class_def.class_id == 0:
             raise ValueError("Portable class id cannot be zero!")
         self._add_field_by_type(field_name, FieldType.PORTABLE, class_def.version,
                                 class_def.factory_id, class_def.class_id)
+        if self._serialization_config:
+            self._serialization_config.class_definitions.add(class_def)
         return self
 
     def add_byte_field(self, field_name):
