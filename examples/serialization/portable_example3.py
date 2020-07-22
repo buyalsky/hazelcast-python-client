@@ -12,10 +12,10 @@ class HomeAddress(Portable):
         self.city = city
 
     def get_factory_id(self):
-        return Address.FACTORY_ID
+        return HomeAddress.FACTORY_ID
 
     def get_class_id(self):
-        return Address.CLASS_ID
+        return HomeAddress.CLASS_ID
 
     def write_portable(self, writer: hazelcast.serialization.api.PortableWriter):
         writer.write_utf("city", self.city)
@@ -108,7 +108,7 @@ def read_values_from_map(map):
 
 if __name__ == '__main__':
     config = hazelcast.ClientConfig()
-    factory = {Employee.CLASS_ID: Employee, Address.CLASS_ID: Address}
+    factory = {Employee.CLASS_ID: Employee, Address.CLASS_ID: Address, HomeAddress.CLASS_ID: HomeAddress}
     config.serialization_config.add_portable_factory(1, factory)
 
     home_address_class_def = ClassDefinitionBuilder(1, HomeAddress.CLASS_ID).add_utf_field("city").build()
