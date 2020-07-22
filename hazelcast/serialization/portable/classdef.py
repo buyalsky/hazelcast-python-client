@@ -55,9 +55,13 @@ class ClassDefinition(object):
         self.class_id = class_id
         self.version = version
         self.field_defs = {}  # string:FieldDefinition
+        self.inner_class_defs = {}  # field_name:ClassDefinition
 
     def add_field_def(self, field_def):
         self.field_defs[field_def.field_name] = field_def
+
+    def add_inner_class_definition(self, field_name, class_def):
+        self.inner_class_defs[field_name] = class_def
 
     def get_field(self, field_name_or_index):
         if isinstance(field_name_or_index, int):
@@ -111,7 +115,7 @@ class ClassDefinition(object):
 
 
 class ClassDefinitionBuilder(object):
-    def __init__(self, factory_id, class_id, version=0, serialization_config=None):
+    def __init__(self, factory_id, class_id, version=0):
         self.factory_id = factory_id
         self.class_id = class_id
         self.version = version
@@ -119,16 +123,14 @@ class ClassDefinitionBuilder(object):
         self._index = 0
         self._done = False
         self._field_defs = list()
-
-        self._serialization_config = serialization_config
+        self._portable_field_defs = {}  # field name: ClassDefinition
 
     def add_portable_field(self, field_name, class_def):
         if class_def.class_id is None or class_def.class_id == 0:
             raise ValueError("Portable class id cannot be zero!")
         self._add_field_by_type(field_name, FieldType.PORTABLE, class_def.version,
                                 class_def.factory_id, class_def.class_id)
-        if self._serialization_config:
-            self._serialization_config.class_definitions.add(class_def)
+        self._portable_field_defs[field_name] = class_def
         return self
 
     def add_byte_field(self, field_name):
@@ -172,6 +174,7 @@ class ClassDefinitionBuilder(object):
             raise ValueError("Portable class id cannot be zero!")
         self._add_field_by_type(field_name, FieldType.PORTABLE_ARRAY, class_def.version,
                                 class_def.factory_id, class_def.class_id)
+        self._portable_field_defs[field_name] = class_def
         return self
 
     def add_byte_array_field(self, field_name):
@@ -223,6 +226,8 @@ class ClassDefinitionBuilder(object):
         cd = ClassDefinition(self.factory_id, self.class_id, self.version)
         for field_def in self._field_defs:
             cd.add_field_def(field_def)
+        for field_name, class_def in self._portable_field_defs.items():
+            cd.add_inner_class_definition(field_name, class_def)
         return cd
 
     def _add_field_by_type(self, field_name, field_type, version, factory_id=0, class_id=0):

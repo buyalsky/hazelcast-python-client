@@ -89,6 +89,9 @@ class SerializationServiceV1(BaseSerializationService):
             self.register_class_definition(cd, class_defs, check_error)
 
     def register_class_definition(self, cd, class_defs, check_error):
+        for inner_portable_class_def in cd.inner_class_defs.values():
+            class_defs[inner_portable_class_def.class_id] = inner_portable_class_def
+            self.register_class_definition(inner_portable_class_def, class_defs, check_error)
         field_names = cd.get_field_names()
         for field_name in field_names:
             fd = cd.get_field(field_name)
