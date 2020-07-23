@@ -347,10 +347,28 @@ class PortableSerializationTestCase(unittest.TestCase):
         ss1 = SerializationServiceV1(serialization_config)
         ss2 = SerializationServiceV1(serialization_config)
 
-        # ss2.to_data(Child("Joe"))
+        ss2.to_data(Child("Joe"))
 
         p = Parent(Child("Joe"))
 
+        data = ss1.to_data(p)
+
+        self.assertEqual(p, ss2.to_object(data))
+
+    def test_nested_null_portable_serialization(self):
+        serialization_config = hazelcast.SerializationConfig()
+
+        serialization_config.portable_factories[1] = {1: Parent, 2: Child}
+
+        child_class_def = ClassDefinitionBuilder(FACTORY_ID, 2).add_utf_field("name").build()
+        parent_class_def = ClassDefinitionBuilder(FACTORY_ID, 1).add_portable_field("child", child_class_def).build()
+
+        serialization_config.class_definitions.add(parent_class_def)
+
+        ss1 = SerializationServiceV1(serialization_config)
+        ss2 = SerializationServiceV1(serialization_config)
+
+        p = Parent()
         data = ss1.to_data(p)
 
         self.assertEqual(p, ss2.to_object(data))

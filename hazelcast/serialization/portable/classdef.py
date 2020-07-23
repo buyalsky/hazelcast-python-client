@@ -34,7 +34,7 @@ class FieldDefinition(object):
         if class_def:
             self.class_def = class_def
         else:
-            self.class_def = NonPortableClassDefinition(0, 0, version)
+            self.class_def = BaseClassDefinition(0, 0, version)
 
     def has_portable_class_def(self):
         return isinstance(self.class_def, ClassDefinition)
@@ -51,7 +51,11 @@ class FieldDefinition(object):
                                                                                 self.class_def)
 
 
-class NonPortableClassDefinition(object):
+class BaseClassDefinition(object):
+    factory_id = None
+    class_id = None
+    version = None
+
     def __init__(self, factory_id, class_id, version):
         self.factory_id = factory_id
         self.class_id = class_id
@@ -68,14 +72,14 @@ class NonPortableClassDefinition(object):
         return "fid:{}, cid:{}, v:{}".format(self.factory_id, self.class_id, self.version)
 
     def __hash__(self):
-        return id(self)//16
+        result = self.factory_id * 31 + self.class_id
+        result = 17 * result + self.version
+        return result
 
 
-class ClassDefinition(object):
+class ClassDefinition(BaseClassDefinition):
     def __init__(self, factory_id, class_id, version):
-        self.factory_id = factory_id
-        self.class_id = class_id
-        self.version = version
+        super().__init__(factory_id, class_id, version)
         self.field_defs = {}  # string:FieldDefinition
 
     def add_field_def(self, field_def):
@@ -128,10 +132,7 @@ class ClassDefinition(object):
     def __repr__(self):
         return "fid:{}, cid:{}, v:{}, fields:{}".format(self.factory_id, self.class_id, self.version, self.field_defs)
 
-    def __hash__(self):
-        result = self.class_id
-        result * 31 * result + self.version
-        return result
+    __hash__ = super.__hash__
 
 
 class ClassDefinitionBuilder(object):
