@@ -27,22 +27,25 @@ FieldType = enum(
 
 
 class FieldDefinition(object):
-    def __init__(self, index, field_name, field_type, class_def=None, version=None):
+    def __init__(self, index, field_name, field_type, version, class_def=None):
         self.index = index
         self.field_name = field_name
         self.field_type = field_type
-        if class_def:
-            self.class_def = class_def
-        else:
-            self.class_def = BaseClassDefinition(0, 0, version)
+        self.version = version
+        self.class_def = class_def
 
-    def has_portable_class_def(self):
-        return isinstance(self.class_def, ClassDefinition)
+    @property
+    def class_id(self):
+        return self.class_def.class_id if self.class_def else 0
+
+    @property
+    def factory_id(self):
+        return self.class_def.factory_id if self.class_def else 0
 
     def __eq__(self, other):
-        return isinstance(other, self.__class__) \
-               and (self.index, self.field_name, self.field_type, self.class_def) == \
-                   (other.index, other.field_name, other.field_type, self.class_def)
+        return isinstance(other, self.__class__) and self.index == other.index and \
+               self.field_name == other.field_name and self.field_type == other.field_type \
+               and self.class_def == self.class_def
 
     def __repr__(self):
         return "FieldDefinition[ ix:{}, name:{}, type:{}, class_def:{}]".format(self.index,
@@ -51,36 +54,19 @@ class FieldDefinition(object):
                                                                                 self.class_def)
 
 
-class BaseClassDefinition(object):
-    factory_id = None
-    class_id = None
-    version = None
-
-    def __init__(self, factory_id, class_id, version):
+class ClassDefinition(object):
+    def __init__(self, factory_id, class_id):
         self.factory_id = factory_id
         self.class_id = class_id
-        self.version = version
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and (self.factory_id, self.class_id, self.version) == \
-                                                     (other.factory_id, other.class_id, other.version)
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __repr__(self):
-        return "fid:{}, cid:{}, v:{}".format(self.factory_id, self.class_id, self.version)
-
-    def __hash__(self):
-        result = self.factory_id * 31 + self.class_id
-        result = 17 * result + self.version
-        return result
-
-
-class ClassDefinition(BaseClassDefinition):
-    def __init__(self, factory_id, class_id, version):
-        super().__init__(factory_id, class_id, version)
         self.field_defs = {}  # string:FieldDefinition
+
+    @property
+    def version(self):
+        if len(self.field_defs) == 0:
+            return 0
+        else:
+            # Assuming that all inner field definitions have same version
+            return list(self.field_defs.values())[0].version
 
     def add_field_def(self, field_def):
         self.field_defs[field_def.field_name] = field_def
@@ -119,12 +105,13 @@ class ClassDefinition(BaseClassDefinition):
         return len(self.field_defs)
 
     def set_version_if_not_set(self, version):
-        if self.version < 0:
-            self.version = version
+        if self.get_field_count() != 0:
+            for fd in self.field_defs.values():
+                fd.version = version
 
     def __eq__(self, other):
-        return isinstance(other, self.__class__) and (self.factory_id, self.class_id, self.version, self.field_defs) == \
-                                                     (other.factory_id, other.class_id, other.version, other.field_defs)
+        return isinstance(other, self.__class__) and self.factory_id == other.factory_id and self.class_id == \
+               other.class_id and self.version == other.version and self.field_defs == other.field_defs
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -132,7 +119,10 @@ class ClassDefinition(BaseClassDefinition):
     def __repr__(self):
         return "fid:{}, cid:{}, v:{}, fields:{}".format(self.factory_id, self.class_id, self.version, self.field_defs)
 
-    __hash__ = super.__hash__
+    def __hash__(self):
+        result = self.factory_id * 31 + self.class_id
+        result = 17 * result + self.version
+        return result
 
 
 class ClassDefinitionBuilder(object):
@@ -239,19 +229,14 @@ class ClassDefinitionBuilder(object):
 
     def build(self):
         self._done = True
-        cd = ClassDefinition(self.factory_id, self.class_id, self.version)
+        cd = ClassDefinition(self.factory_id, self.class_id)
         for field_def in self._field_defs:
             cd.add_field_def(field_def)
         return cd
 
     def _add_field_by_type(self, field_name, field_type, class_def=None):
         self._check()
-        if class_def:
-            self._field_defs.append(
-                FieldDefinition(self._index, field_name, field_type, class_def=class_def))
-        else:
-            self._field_defs.append(
-                FieldDefinition(self._index, field_name, field_type, version=self.version))
+        self._field_defs.append(FieldDefinition(self._index, field_name, field_type, self.version, class_def=class_def))
         self._index += 1
 
     def _check(self):

@@ -7,7 +7,6 @@ from hazelcast.serialization.api import Portable
 from hazelcast.serialization.portable.classdef import ClassDefinitionBuilder
 from tests.serialization.identified_test import create_identified, SerializationV1Identified
 from hazelcast import six
-from hazelcast.config import ClientProperties
 
 if not six.PY2:
     long = int
@@ -173,7 +172,7 @@ class InnerPortable(Portable):
         return self.param_str == other.param_str and self.param_int == other.param_int
 
     def __hash__(self):
-        return id(self)//16
+        return id(self) // 16
 
 
 class Parent(Portable):
@@ -187,7 +186,10 @@ class Parent(Portable):
         return 1
 
     def write_portable(self, writer):
-        writer.write_portable("child", self.child)
+        if self.child:
+            writer.write_portable("child", self.child)
+        else:
+            writer.write_null_portable("child", FACTORY_ID, 2)
 
     def read_portable(self, reader):
         self.child = reader.read_portable("child")
@@ -225,7 +227,8 @@ def create_portable():
                                    [1, 2, 3], [4, 2, 3], [11, 2, 3], [1.0, 2.0, 3.0],
                                    [11.0, 22.0, 33.0], "the string text",
                                    ["item1", "item2", "item3"], inner_portable,
-                                   [InnerPortable("Portable array item 0", 0), InnerPortable("Portable array item 1", 1)],
+                                   [InnerPortable("Portable array item 0", 0),
+                                    InnerPortable("Portable array item 1", 1)],
                                    identified)
 
 
