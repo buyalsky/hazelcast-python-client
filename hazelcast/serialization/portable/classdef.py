@@ -27,20 +27,11 @@ FieldType = enum(
 
 
 class FieldDefinition(object):
-    def __init__(self, index, field_name, field_type, version, class_def=None):
+    def __init__(self, index, field_name, field_type, class_def=None):
         self.index = index
         self.field_name = field_name
         self.field_type = field_type
-        self.version = version
         self.class_def = class_def
-
-    @property
-    def class_id(self):
-        return self.class_def.class_id if self.class_def else 0
-
-    @property
-    def factory_id(self):
-        return self.class_def.factory_id if self.class_def else 0
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.index == other.index and \
@@ -55,18 +46,11 @@ class FieldDefinition(object):
 
 
 class ClassDefinition(object):
-    def __init__(self, factory_id, class_id):
+    def __init__(self, factory_id, class_id, version):
         self.factory_id = factory_id
         self.class_id = class_id
+        self.version = version
         self.field_defs = {}  # string:FieldDefinition
-
-    @property
-    def version(self):
-        if len(self.field_defs) == 0:
-            return 0
-        else:
-            # Assuming that all inner field definitions have same version
-            return list(self.field_defs.values())[0].version
 
     def add_field_def(self, field_def):
         self.field_defs[field_def.field_name] = field_def
@@ -105,9 +89,8 @@ class ClassDefinition(object):
         return len(self.field_defs)
 
     def set_version_if_not_set(self, version):
-        if self.get_field_count() != 0:
-            for fd in self.field_defs.values():
-                fd.version = version
+        if self.version < 0:
+            self.version = version
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.factory_id == other.factory_id and self.class_id == \
@@ -229,14 +212,14 @@ class ClassDefinitionBuilder(object):
 
     def build(self):
         self._done = True
-        cd = ClassDefinition(self.factory_id, self.class_id)
+        cd = ClassDefinition(self.factory_id, self.class_id, self.version)
         for field_def in self._field_defs:
             cd.add_field_def(field_def)
         return cd
 
     def _add_field_by_type(self, field_name, field_type, class_def=None):
         self._check()
-        self._field_defs.append(FieldDefinition(self._index, field_name, field_type, self.version, class_def=class_def))
+        self._field_defs.append(FieldDefinition(self._index, field_name, field_type, class_def=class_def))
         self._index += 1
 
     def _check(self):

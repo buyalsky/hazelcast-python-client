@@ -271,10 +271,11 @@ class DefaultPortableReader(PortableReader):
 
 
 def _check_factory_and_class(field_def, factory_id, class_id):
-    if factory_id != field_def.factory_id:
-        raise ValueError("Invalid factoryId! Expected: {}, Current: {}".format(factory_id, field_def.factory_id))
-    if class_id != field_def.class_id:
-        raise ValueError("Invalid classId! Expected: {}, Current: {}".format(class_id, field_def.class_id))
+    if factory_id != field_def.class_def.factory_id:
+        raise ValueError("Invalid factoryId! Expected: {}, Current: {}"
+                         .format(factory_id, field_def.class_def.factory_id))
+    if class_id != field_def.class_def.class_id:
+        raise ValueError("Invalid classId! Expected: {}, Current: {}".format(class_id, field_def.class_def.class_id))
 
 
 class MorphingPortableReader(DefaultPortableReader):
